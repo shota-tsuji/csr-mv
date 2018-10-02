@@ -2,7 +2,7 @@
 #include "mmio.h"
 
 // print vector values and device number
-__global__ void print_vec_info(const int device_num, double* vec, const int n)
+__global__ void print_vec_info(const int device_num, double* vec)
 {
 	int thrd_num = threadIdx.x;
 	printf(" device: %d, vec[%d] = %lf\n", device_num, thrd_num, vec[thrd_num]);
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 	dim3 dimGrid(1, 1);
 	dim3 dimBlock(num_col, 1);
 	for(int i = 0; i < num_device; ++i){
-
+		print_vec_info<<<dimGrid, dimBlock>>>(i, vec_x_ds[i]);
 	}
 
 
