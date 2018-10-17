@@ -29,7 +29,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	// send from root and receive on other processes
-	//MPI_Scatter(vec_x, num, MPI_DOUBLE, vec_x, num, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Bcast(vec_x, num, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Scatter(mat_A, (num/numproc)*num, MPI_DOUBLE, sub_A, (num/numproc)*num, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	if(myrank == 1){
@@ -40,8 +39,22 @@ int main(int argc, char *argv[])
 	for(int i = 0; i < (num/numproc)*num; ++i){
 		printf("rank = %d, sub_A[%d] = %lf\n", myrank, i, sub_A[i]);
 	}
-	free(sub_A);
+
+	// prepare result sub-vector
+	int num_row = num / numproc; // the number of sub-matrix row
+	size = num_row * sizeof(double);
+	double* vec_y = (double*) calloc(num_row, sizeof(double));
+	// calculate dgemv
+	for(int i = 0; i < num_row; ++i){
+		for(int j = 0; j < num; ++j){
+			vec_y[i] += sub_A[i * num + j] * vec_x[j];
+		}
+	}
+	for(int i = 0; i < num_row; ++i){
+		printf("rank = %d, result[%d] = %lf\n", myrank, i, vec_y[i]);
+	}
 	MPI_Finalize();
+	free(sub_A);
 	free(mat_A);
 	free(vec_x);
 	return 0;
