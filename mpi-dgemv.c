@@ -43,15 +43,26 @@ int main(int argc, char *argv[])
 	// prepare result sub-vector
 	int num_row = num / numproc; // the number of sub-matrix row
 	size = num_row * sizeof(double);
-	double* vec_y = (double*) calloc(num_row, sizeof(double));
+	double* sub_vec_y = (double*) calloc(num_row, sizeof(double));
 	// calculate dgemv
 	for(int i = 0; i < num_row; ++i){
 		for(int j = 0; j < num; ++j){
-			vec_y[i] += sub_A[i * num + j] * vec_x[j];
+			sub_vec_y[i] += sub_A[i * num + j] * vec_x[j];
 		}
 	}
 	for(int i = 0; i < num_row; ++i){
-		printf("rank = %d, result[%d] = %lf\n", myrank, i, vec_y[i]);
+		printf("rank = %d, result[%d] = %lf\n", myrank, i, sub_vec_y[i]);
+	}
+	// gather sub-result-vector
+	double *vec_y;
+	if(myrank == 0){
+		vec_y = (double*) malloc(num * sizeof(double));
+	}
+	MPI_Gather(sub_vec_y, num_row, MPI_DOUBLE, vec_y, num_row, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	if(myrank == 0){
+		for(int i = 0; i < num; ++i){
+			printf("result[%d] = %lf\n", i, vec_y[i]);
+		}
 	}
 	MPI_Finalize();
 	free(sub_A);
