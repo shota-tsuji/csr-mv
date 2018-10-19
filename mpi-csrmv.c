@@ -38,13 +38,13 @@ int main(int argc, char *argv[])
 				nnz++;
 			}
 		}
-		printf("nnz = %d\n", nnz);
+		//printf("nnz = %d\n", nnz);
 	}
 	// broadcast the number of nnz
 	MPI_Bcast(&nnz, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	if(myrank == 1){
+	/*if(myrank == 1){
 		printf("myrank == %d, nnz = %d\n", myrank, nnz);
-	}
+	}*/
 	// allocate arrays for val and col_ind
 	size_t size = nnz * sizeof(double);
 	double *val = (double*) malloc(size);
@@ -67,9 +67,9 @@ int main(int argc, char *argv[])
 		for(int i = 0; i < num; ++i){
 			row_ptr[i + 1] += row_ptr[i];
 		}
-		for(int i = 0; i <= num; ++i){
+		/*for(int i = 0; i <= num; ++i){
 			printf("row_ptr[%d] = %d\n", i, row_ptr[i]);
-		}
+		}*/
 		// prepare val and col_ind
 		int idx = 0;
 		for(int i = 0; i < num; ++i){
@@ -90,11 +90,11 @@ int main(int argc, char *argv[])
 	MPI_Bcast(val, nnz, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Bcast(col_ind, nnz, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(vec_x, num, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	if(myrank == 1){
+	/*if(myrank == 1){
 		for(int i = 0; i < nnz; ++i){
 			printf("myrank = %d, val[%d] = %lf, col_ind[%d] = %d\n", myrank, i, val[i], i, col_ind[i]);
 		}
-	}
+	}*/
 	// calculate csrmv
 	int numproc;
 	MPI_Comm_size(MPI_COMM_WORLD, &numproc);
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 		for(int j = row_ptr[idx]; j < row_ptr[idx + 1]; ++j){
 			sub_vec_y[i] += val[j] * vec_x[col_ind[j]];
 	 	}
-		printf("myrank = %d, sub_vec_y[%d] = %lf\n", myrank, i, sub_vec_y[i]);
+		//printf("myrank = %d, sub_vec_y[%d] = %lf\n", myrank, i, sub_vec_y[i]);
 	}
 	// gather all sub-result-vectors
 	double *vec_y;
@@ -115,10 +115,17 @@ int main(int argc, char *argv[])
 	MPI_Gather(sub_vec_y, num / numproc, MPI_DOUBLE, vec_y, num / numproc, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	if(myrank == 0){
 		for(int i = 0; i < num; ++i){
-			printf("myrank = %d, result[%d] = %lf\n", myrank, i, vec_y[i]);
+			//printf("myrank = %d, result[%d] = %lf\n", myrank, i, vec_y[i]);
+			printf("result[%d] = %lf\n", i, vec_y[i]);
 		}
 	}
 	
 	MPI_Finalize();
+	free(sub_vec_y);
+	free(row_ptr);
+	free(col_ind);
+	free(val);
+	free(vec_x);
+	free(mat_A);
 	return 0;
 }
