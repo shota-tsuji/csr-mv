@@ -22,11 +22,16 @@ int main(int argc, char *argv[])
 		}
 		printf("\n");
 	}*/
+	double *vec_x = (double*) malloc(num * sizeof(double));
 	MPI_Init(&argc, &argv);
 	int myrank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 	int nnz = 0;
 	if(myrank == 0){
+		// initialize vec_x
+		for(int i = 0; i < num; ++i){
+			vec_x[i] = i;
+		}
 		// count non zero elements
 		for(int i = 0; i < num*num; ++i){
 			if(mat_A[i] != 0.0){
@@ -84,9 +89,33 @@ int main(int argc, char *argv[])
 	MPI_Bcast(row_ptr, num + 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(val, nnz, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Bcast(col_ind, nnz, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(vec_x, num, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	if(myrank == 1){
 		for(int i = 0; i < nnz; ++i){
 			printf("myrank = %d, val[%d] = %lf, col_ind[%d] = %d\n", myrank, i, val[i], i, col_ind[i]);
+		}
+	}
+	// calculate csrmv
+	int numproc;
+	MPI_Comm_size(MPI_COMM_WORLD, &numproc);
+	double *sub_vec_y = (double*) calloc(num / numproc, sizeof(double));
+	for(int i = 0; i < (num / numproc); ++i){
+		// specify the index for row_ptr
+		int idx = myrank * (num / numproc) + i;
+		for(int j = row_ptr[idx]; j < row_ptr[idx + 1]; ++j){
+			sub_vec_y[i] += val[j] * vec_x[col_ind[j]];
+	 	}
+		printf("myrank = %d, sub_vec_y[%d] = %lf\n", myrank, i, sub_vec_y[i]);
+	}
+	// gather all sub-result-vectors
+	double *vec_y;
+	if(myrank == 0){
+		vec_y = (double*) malloc(num * sizeof(double));
+	}
+	MPI_Gather(sub_vec_y, num / numproc, MPI_DOUBLE, vec_y, num / numproc, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	if(myrank == 0){
+		for(int i = 0; i < num; ++i){
+			printf("myrank = %d, result[%d] = %lf\n", myrank, i, vec_y[i]);
 		}
 	}
 	
