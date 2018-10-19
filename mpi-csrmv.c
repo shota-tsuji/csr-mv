@@ -76,8 +76,17 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-		for(int i = 0; i < nnz; ++i){
+		/*for(int i = 0; i < nnz; ++i){
 			printf("val[%d] = %lf, col_ind[%d] = %d\n", i, val[i], i, col_ind[i]);
+		}*/
+	}
+	// broadcast arrays for csr
+	MPI_Bcast(row_ptr, num + 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(val, nnz, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Bcast(col_ind, nnz, MPI_INT, 0, MPI_COMM_WORLD);
+	if(myrank == 1){
+		for(int i = 0; i < nnz; ++i){
+			printf("myrank = %d, val[%d] = %lf, col_ind[%d] = %d\n", myrank, i, val[i], i, col_ind[i]);
 		}
 	}
 	
